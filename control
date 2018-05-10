@@ -1,0 +1,9 @@
+Package: com.shade.shush
+Name: Shush
+Depends: mobilesubstrate, com.a3tweaks.flipswitch
+Version: 0.1
+Architecture: iphoneos-arm
+Description: Do not disturb when face down.
+Maintainer: Shade Zepheri <ziroalpha@gmail.com>
+Author: Shade Zepheri <ziroalpha@gmail.com>
+Section: Tweaks
