@@ -1,6 +1,5 @@
 #import <UIKit/UIKit.h>
 #import <Flipswitch/Flipswitch.h>
-#import <CoreMotion/CMPocketStateManager.h>
 #import <SpringBoard/SBPocketStateMonitor.h>
 // Needs these cuz Kirb won't merge my headers
 #import <SpringBoard/SBBacklightController.h>
@@ -9,18 +8,18 @@
 static FSSwitchState oldState;
 static BOOL shouldDeactivate;
 
-%hook SBPocketStateMonitor
+%hook SBBacklightController
 
-- (void)pocketStateManager:(CMPocketStateManager *)pocketStateManager didUpdateState:(SBPocketState)pocketState {
+- (void)pocketStateMonitor:(SBPocketStateMonitor *)stateMonitor pocketStateDidChangeFrom:(SBPocketState)fromState to:(SBPocketState)toState {
     %orig;
 
-    BOOL screenIsOn = ((SBBacklightController *)[%c(SBBacklightController) sharedInstance]).screenIsOn;
+    BOOL screenIsOn = self.screenIsOn;
     SpringBoard *app = (SpringBoard *)[UIApplication sharedApplication];
 
     FSSwitchPanel *switchPanel = [FSSwitchPanel sharedPanel];
     oldState = [switchPanel stateForSwitchIdentifier:@"com.a3tweaks.switch.do-not-disturb"];
 
-    switch (pocketState) {
+    switch (toState) {
         case SBPocketStateOutOfPocket: {
             if (!screenIsOn) {
                 [app _simulateHomeButtonPress];
@@ -32,7 +31,7 @@ static BOOL shouldDeactivate;
 
             shouldDeactivate = NO;
             [switchPanel setState:FSSwitchStateOff forSwitchIdentifier:@"com.a3tweaks.switch.do-not-disturb"];
-            break;
+            return;
         }
         case SBPocketStateFaceDown:
         case SBPocketStateFaceDownOnTable: {
@@ -46,12 +45,12 @@ static BOOL shouldDeactivate;
 
             shouldDeactivate = YES;
             [switchPanel setState:FSSwitchStateOn forSwitchIdentifier:@"com.a3tweaks.switch.do-not-disturb"];
-            break;
+            return;
         }
         case SBPocketStateInPocket:
         case SBPocketStateUnknown:
-            break;
-    }    
+            return;
+    }
 }
 
 %end
