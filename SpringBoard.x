@@ -1,27 +1,38 @@
 #import <UIKit/UIKit.h>
+#import "SHUSettings.h"
+
 #import <Flipswitch/Flipswitch.h>
 #import <SpringBoard/SBPocketStateMonitor.h>
 // Needs these cuz Kirb won't merge my headers
 #import <SpringBoard/SBBacklightController.h>
 #import <SpringBoard/SpringBoard+Private.h>
 
-static FSSwitchState oldState;
-static BOOL shouldDeactivate;
+FSSwitchState oldState;
+BOOL shouldDeactivate;
+
+SHUSettings *settings;
+
+#pragma mark - Hooks
 
 %hook SBBacklightController
 
 - (void)pocketStateMonitor:(SBPocketStateMonitor *)stateMonitor pocketStateDidChangeFrom:(SBPocketState)fromState to:(SBPocketState)toState {
     %orig;
 
-    BOOL screenIsOn = self.screenIsOn;
+    // Only proceed if enabled
+    if (!settings.enabled) {
+        return;
+    }
+
     SpringBoard *app = (SpringBoard *)[UIApplication sharedApplication];
 
+    // Check if DND is already enabled
     FSSwitchPanel *switchPanel = [FSSwitchPanel sharedPanel];
     oldState = [switchPanel stateForSwitchIdentifier:@"com.a3tweaks.switch.do-not-disturb"];
 
     switch (toState) {
         case SBPocketStateOutOfPocket: {
-            if (!screenIsOn) {
+            if (!self.screenIsOn && settings.lockDevice) {
                 [app _simulateHomeButtonPress];
             }
 
@@ -35,7 +46,7 @@ static BOOL shouldDeactivate;
         }
         case SBPocketStateFaceDown:
         case SBPocketStateFaceDownOnTable: {
-            if (screenIsOn) {
+            if (self.screenIsOn && settings.lockDevice) {
                 [app _simulateLockButtonPress];
             }
 
@@ -54,3 +65,10 @@ static BOOL shouldDeactivate;
 }
 
 %end
+
+#pragma mark - Constructor
+
+%ctor {
+    // Create singleton
+    settings = [SHUSettings sharedSettings];
+}
